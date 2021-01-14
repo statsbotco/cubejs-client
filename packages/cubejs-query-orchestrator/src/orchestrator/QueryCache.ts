@@ -6,6 +6,7 @@ import { RedisCacheDriver } from './RedisCacheDriver';
 import { LocalCacheDriver } from './LocalCacheDriver';
 import { CacheDriverInterface } from './cache-driver.interface';
 import { DriverFactory, DriverFactoryByDataSource } from './DriverFactory';
+import { DynamoDBCacheDriver } from './DynamoDBCacheDriver';
 
 export class QueryCache {
   protected readonly cacheDriver: CacheDriverInterface;
@@ -25,12 +26,20 @@ export class QueryCache {
       backgroundRenew?: Boolean;
       queueOptions?: object | ((dataSource: String) => object);
       redisPool?: any;
-      cacheAndQueueDriver?: 'redis' | 'memory';
+      cacheAndQueueDriver?: 'redis' | 'memory' | 'dynamodb';
     } = {}
   ) {
-    this.cacheDriver = options.cacheAndQueueDriver === 'redis' ?
-      new RedisCacheDriver({ pool: options.redisPool }) :
-      new LocalCacheDriver();
+    switch (options.cacheAndQueueDriver) {
+      case 'redis':
+        this.cacheDriver = new RedisCacheDriver({ pool: options.redisPool });
+        break;
+      case 'dynamodb':
+        this.cacheDriver = new DynamoDBCacheDriver();
+        break;
+      case 'memory':
+      default:
+        this.cacheDriver = new LocalCacheDriver();
+    }
   }
 
   public async cachedQueryResult(queryBody, preAggregationsTablesToTempTables) {

@@ -37,8 +37,8 @@ export class QueryOrchestrator {
       process.env.NODE_ENV === 'production' || process.env.REDIS_URL ? 'redis' : 'memory'
     );
 
-    if (!['redis', 'memory'].includes(cacheAndQueueDriver)) {
-      throw new Error('Only \'redis\' or \'memory\' are supported for cacheAndQueueDriver option');
+    if (!['redis', 'memory', 'dynamodb'].includes(cacheAndQueueDriver)) {
+      throw new Error('Only \'redis\', \'dynamodb\' or \'memory\' are supported for cacheAndQueueDriver option');
     }
 
     const redisPool = cacheAndQueueDriver === 'redis' ? new RedisPool(options.redisPoolOptions) : undefined;

@@ -4,6 +4,7 @@ import { TimeoutError } from './TimeoutError';
 import { ContinueWaitError } from './ContinueWaitError';
 import { RedisQueueDriver } from './RedisQueueDriver';
 import { LocalQueueDriver } from './LocalQueueDriver';
+import { DynamoDBQueueDriver } from './DynamoDBQueueDriver';
 
 export class QueryQueue {
   constructor(redisQueuePrefix, options) {
@@ -26,9 +27,18 @@ export class QueryQueue {
       heartBeatTimeout: this.heartBeatInterval * 4,
       redisPool: options.redisPool
     };
-    this.queueDriver = options.cacheAndQueueDriver === 'redis' ?
-      new RedisQueueDriver(queueDriverOptions) :
-      new LocalQueueDriver(queueDriverOptions);
+
+    switch (options.cacheAndQueueDriver) {
+      case 'redis':
+        this.queueDriver = new RedisQueueDriver(queueDriverOptions);
+        break;
+      case 'dynamodb':
+        this.queueDriver = new DynamoDBQueueDriver(queueDriverOptions);
+        break;
+      case 'memory':
+      default:
+        this.queueDriver = new LocalQueueDriver(queueDriverOptions);
+    }
   }
 
   async executeInQueue(queryHandler, queryKey, query, priority, options) {
@@ -226,6 +236,7 @@ export class QueryQueue {
       if (!query) {
         query = await redisClient.getQueryDef(this.redisHash(queryKey));
       }
+
       if (query && insertedCount && activated && processingLockAcquired) {
         let executionResult;
         const startQueryTime = (new Date()).getTime();
