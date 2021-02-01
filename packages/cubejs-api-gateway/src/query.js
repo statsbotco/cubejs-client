@@ -70,7 +70,7 @@ const oneFilter = Joi.object().keys({
   dimension: id,
   member: id,
   operator: Joi.valid(operators).required(),
-  values: Joi.array().items(Joi.string().allow('', null), Joi.lazy(() => oneFilter))
+  values: Joi.array().items(Joi.string().allow('', null, true, false), Joi.lazy(() => oneFilter))
 }).xor('dimension', 'member');
 
 const oneCondition = Joi.object().keys({
