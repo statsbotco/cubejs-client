@@ -414,6 +414,33 @@ impl SqlService for SqlServiceImpl {
                 };
                 Ok(res)
             }
+            CubeStoreStatement::Statement(Statement::Explain {
+                analyze,
+                verbose,
+                statement,
+                ..
+            }) => {
+                let logical_plan = self
+                    .query_planner
+                    .logical_plan(DFStatement::Statement(Statement::Explain {
+                        analyze,
+                        verbose,
+                        statement,
+                    }))
+                    .await?;
+                // TODO distribute and combine
+                let res = match logical_plan {
+                    QueryPlan::Meta(logical_plan) => {
+                        self.query_planner.execute_meta_plan(logical_plan).await?
+                    }
+                    QueryPlan::Select(serialized) => {
+                        self.query_executor
+                            .execute_router_plan(serialized, self.cluster.clone())
+                            .await?
+                    }
+                };
+                Ok(res)
+            }
             _ => Err(CubeError::user(format!("Unsupported SQL: '{}'", q))),
         }
     }
@@ -2122,6 +2149,34 @@ mod tests {
             ).await.unwrap();
 
             let result = service.exec_query("SELECT sum(`page_view_count`) from foo.sessions `sessions` JOIN foo.page_views `page_views` ON `id` = `session_id` WHERE `t` >= to_timestamp('2020-01-02T00:00:00.000Z')").await.unwrap();
+
+            assert_eq!(result.get_rows()[0], Row::new(vec![TableValue::Int(50)]));
+        }).await;
+    }
+
+    #[tokio::test]
+    async fn explain_verbose() {
+        Config::run_test("explain_verbose", async move |services| {
+            let service = services.sql_service;
+
+            service.exec_query("CREATE SCHEMA foo").await.unwrap();
+
+            service.exec_query("CREATE TABLE foo.sessions (t timestamp, id int)").await.unwrap();
+            service.exec_query("CREATE TABLE foo.page_views (session_id int, page_view_count int)").await.unwrap();
+
+            service.exec_query("CREATE INDEX by_id ON foo.sessions (id)").await.unwrap();
+
+            service.exec_query(
+                "INSERT INTO foo.sessions (t, id) VALUES ('2020-01-01T00:00:00.000Z', 1), ('2020-01-02T00:00:00.000Z', 2), ('2020-01-03T00:00:00.000Z', 3)"
+            ).await.unwrap();
+
+            service.exec_query(
+                "INSERT INTO foo.page_views (session_id, page_view_count) VALUES (1, 10), (2, 20), (3, 30)"
+            ).await.unwrap();
+
+            let result = service.exec_query("EXPLAIN VERBOSE SELECT sum(`page_view_count`) from foo.sessions `sessions` JOIN foo.page_views `page_views` ON `id` = `session_id` WHERE `t` >= to_timestamp('2020-01-02T00:00:00.000Z')").await.unwrap();
+
+            println!("Result {:?}", result);
 
             assert_eq!(result.get_rows()[0], Row::new(vec![TableValue::Int(50)]));
         }).await;
