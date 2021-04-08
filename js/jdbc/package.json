@@ -1,0 +1,36 @@
+{
+  "name": "JDBC workspaces for Cube.js JavaScript code",
+  "version": "0.1.0",
+  "description": "Cube.js workspace for JDBC",
+  "private": true,
+  "workspaces": {
+    "packages": [
+      "*"
+    ]
+  },
+  "scripts": {
+    "tsc": "tsc --build",
+    "tsc:watch": "tsc --build --watch",
+    "clean": "rimraf ./*/{tsconfig.tsbuildinfo,lib,dist}",
+    "postinstall": "lerna link"
+  },
+  "author": "Cube Dev, Inc.",
+  "dependencies": {
+    "packages": "*"
+  },
+  "devDependencies": {
+    "typescript": "~4.1.5"
+  },
+  "files": [
+    "src",
+    "dist"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/cube-js/cube.js.git"
+  },
+  "resolutions": {
+    "@types/ramda": "0.27.34"
+  },
+  "license": "MIT"
+}

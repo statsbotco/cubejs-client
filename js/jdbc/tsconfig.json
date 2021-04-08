@@ -1,0 +1,14 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "references": [
+    {
+      "path": "maven"
+    },
+    {
+      "path": "jdbc-driver"
+    },
+    {
+      "path": "databricks-jdbc-driver"
+    }
+  ]
+}
