@@ -8,11 +8,8 @@ import isDocker from 'is-docker';
 import { ApiGateway } from '@cubejs-backend/api-gateway';
 import {
   CancelableInterval,
-  createCancelableInterval, displayCLIWarning, formatDuration,
-  getAnonymousId,
-  getEnv,
-  internalExceptions, isDockerImage, requireFromPackage,
-  track,
+  createCancelableInterval, displayCLIWarning, formatDuration, getAnonymousId,
+  getEnv, getRealType, internalExceptions, isDockerImage, requireFromPackage, track,
 } from '@cubejs-backend/shared';
 
 import type { Application as ExpressApplication } from 'express';
@@ -404,11 +401,13 @@ export class CubejsServerCore {
       devServer,
       driverFactory: (ctx) => {
         const dbType = this.contextToDbType(ctx);
-        if (dbType) {
+        if (typeof dbType === 'string') {
           return CubejsServerCore.createDriver(dbType);
         }
 
-        return null;
+        throw new Error(
+          `Unexpected return type, dbType must return string, actual: ${getRealType(dbType)}`
+        );
       },
       dialectFactory: (ctx) => CubejsServerCore.lookupDriverClass(ctx.dbType).dialectClass &&
         CubejsServerCore.lookupDriverClass(ctx.dbType).dialectClass(),
@@ -657,17 +656,23 @@ export class CubejsServerCore {
 
           try {
             driver = await this.options.driverFactory({ ...context, dataSource });
-            if (driver.setLogger) {
-              driver.setLogger(this.logger);
+            if (typeof driver === 'object' && driver != null) {
+              if (driver.setLogger) {
+                driver.setLogger(this.logger);
+              }
+
+              await driver.testConnection();
+
+              return driver;
             }
 
-            await driver.testConnection();
-
-            return driver;
+            throw new Error(
+              `Unexpected return type, driverFactory must return object, actual: ${getRealType(driver)}`
+            );
           } catch (e) {
             driverPromise[dataSource] = null;
 
-            if (driver) {
+            if (typeof driver === 'object' && driver != null) {
               await driver.release();
             }
 
@@ -686,17 +691,23 @@ export class CubejsServerCore {
 
           try {
             driver = await this.options.externalDriverFactory(context);
-            if (driver.setLogger) {
-              driver.setLogger(this.logger);
+            if (typeof driver === 'object' && driver != null) {
+              if (driver.setLogger) {
+                driver.setLogger(this.logger);
+              }
+
+              await driver.testConnection();
+
+              return driver;
             }
 
-            await driver.testConnection();
-
-            return driver;
+            throw new Error(
+              `Unexpected return type, externalDriverFactory must return object, actual: ${getRealType(driver)}`
+            );
           } catch (e) {
             externalPreAggregationsDriverPromise = null;
 
-            if (driver) {
+            if (typeof driver === 'object' && driver != null) {
               await driver.release();
             }
 
