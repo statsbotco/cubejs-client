@@ -105,6 +105,10 @@ export class QueryOrchestrator {
     };
   }
 
+  public async getPreAggregationStuctureVersions(preAggregation) {
+    return this.preAggregations.getAllStructureVersion(preAggregation);
+  }
+
   public async loadRefreshKeys(query) {
     return this.queryCache.loadRefreshKeysFromQuery(query);
   }

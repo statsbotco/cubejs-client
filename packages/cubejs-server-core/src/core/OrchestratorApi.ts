@@ -150,6 +150,10 @@ export class OrchestratorApi {
     }
   }
 
+  public getPreAggregationStuctureVersions(preAggregation) {
+    return this.orchestrator.getPreAggregationStuctureVersions(preAggregation);
+  }
+
   public addDataSeenSource(dataSource) {
     this.seenDataSources[dataSource] = true;
   }

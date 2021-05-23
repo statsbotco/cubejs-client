@@ -160,6 +160,8 @@ export interface ApiGatewayOptions {
   standalone: boolean;
   dataSourceStorage: any;
   refreshScheduler: any;
+  scheduledRefreshContexts?: any;
+  scheduledRefreshTimeZones?: any;
   basePath: string;
   extendContext?: ExtendContextFn;
   checkAuth?: CheckAuthFn;
@@ -175,6 +177,10 @@ export interface ApiGatewayOptions {
 
 export class ApiGateway {
   protected readonly refreshScheduler: any;
+
+  protected readonly scheduledRefreshContexts: any;
+
+  protected readonly scheduledRefreshTimeZones: any;
 
   protected readonly basePath: string;
 
@@ -211,6 +217,8 @@ export class ApiGateway {
   ) {
     this.dataSourceStorage = options.dataSourceStorage;
     this.refreshScheduler = options.refreshScheduler;
+    this.scheduledRefreshContexts = options.scheduledRefreshContexts;
+    this.scheduledRefreshTimeZones = options.scheduledRefreshTimeZones;
     this.standalone = options.standalone;
     this.basePath = options.basePath;
     this.playgroundAuthSecret = options.playgroundAuthSecret;
@@ -307,6 +315,40 @@ export class ApiGateway {
 
     if (this.playgroundAuthSecret) {
       app.get('/cubejs-system/v1/context', userMiddlewares, this.createSystemContextHandler(this.basePath));
+
+      app.get('/cubejs-system/v1/pre-aggregations', userMiddlewares, (async (req, res) => {
+        await this.getPreAggregations({
+          context: req.context,
+          res: this.resToResultFn(res)
+        });
+      }));
+
+      app.get('/cubejs-system/v1/pre-aggregations/security-contexts', userMiddlewares, (async (req, res) => {
+        const contexts = await this.scheduledRefreshContexts();
+        this.resToResultFn(res)({
+          securityContexts: contexts.map(context => context.securityContext)
+        });
+      }));
+
+      app.get('/cubejs-system/v1/pre-aggregations/timezones', userMiddlewares, (async (req, res) => {
+        this.resToResultFn(res)({
+          timezones: this.scheduledRefreshTimeZones
+        });
+      }));
+
+      app.get('/cubejs-system/v1/pre-aggregations/partitions', userMiddlewares, (async (req, res) => {
+        await this.getPreAggregationsPartitions({
+          context: req.context,
+          res: this.resToResultFn(res)
+        });
+      }));
+
+      app.get('/cubejs-system/v1/pre-aggregations/structure-version', userMiddlewares, (async (req, res) => {
+        await this.getPreAggregationsStructureVersions({
+          context: req.context,
+          res: this.resToResultFn(res)
+        });
+      }));
     }
 
     app.get('/readyz', guestMiddlewares, cachedHandler(this.readiness));
@@ -348,6 +390,62 @@ export class ApiGateway {
       const metaConfig = await this.getCompilerApi(context).metaConfig({ requestId: context.requestId });
       const cubes = metaConfig.map(c => c.config);
       res({ cubes });
+    } catch (e) {
+      this.handleError({
+        e, context, res, requestStarted
+      });
+    }
+  }
+
+  public async getPreAggregations({ context, res }: { context: RequestContext, res: ResponseResultFn }) {
+    const requestStarted = new Date();
+    try {
+      const preAggregations = await this
+        .getCompilerApi(context)
+        .preAggregations({ requestId: context.requestId });
+
+      res({ preAggregations });
+    } catch (e) {
+      this.handleError({
+        e, context, res, requestStarted
+      });
+    }
+  }
+
+  public async getPreAggregationsPartitions({ context, res }: { context: RequestContext, res: ResponseResultFn }) {
+    const requestStarted = new Date();
+    try {
+      const compilerApi = this.getCompilerApi(context);
+      const preAggregationsRanges = await this.refreshScheduler()
+        .preAggregationsPartions(context, compilerApi, {
+          timezones: this.scheduledRefreshTimeZones && this.scheduledRefreshTimeZones.length ? this.scheduledRefreshTimeZones : ['UTC']
+        });
+
+      res({ preAggregationsRanges });
+    } catch (e) {
+      this.handleError({
+        e, context, res, requestStarted
+      });
+    }
+  }
+
+  public async getPreAggregationsStructureVersions(
+    { context, res }: { context: RequestContext, res: ResponseResultFn }
+  ) {
+    const requestStarted = new Date();
+    try {
+      const orchestratorApi = this.getAdapterApi(context);
+      const compilerApi = this.getCompilerApi(context);
+
+      const preAggregations = await compilerApi.preAggregations({ requestId: context.requestId });
+      // TODO: filter by pre aggregation and timezones
+      const preAggregation = preAggregations[0];
+      const structureVersions = await orchestratorApi.getPreAggregationStuctureVersions({
+        ...preAggregation,
+        preAggregationsSchema: compilerApi.preAggregationsSchema,
+      });
+
+      res({ structureVersions });
     } catch (e) {
       this.handleError({
         e, context, res, requestStarted
