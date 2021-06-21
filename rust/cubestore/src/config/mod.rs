@@ -172,7 +172,9 @@ pub enum FileStoreProvider {
     },
     S3 {
         region: String,
+        endpoint: Option<String>,
         bucket_name: String,
+        path_style: bool,
         sub_path: Option<String>,
     },
     GCS {
@@ -422,8 +424,10 @@ impl Config {
                 store_provider: {
                     if let Ok(bucket_name) = env::var("CUBESTORE_S3_BUCKET") {
                         FileStoreProvider::S3 {
-                            bucket_name,
+                            bucket_name: bucket_name,
                             region: env::var("CUBESTORE_S3_REGION").unwrap(),
+                            endpoint: env::var("CUBESTORE_S3_ENDPOINT").ok(),
+                            path_style: env_bool("CUBESTORE_S3_PATH_STYLE", false),
                             sub_path: env::var("CUBESTORE_S3_SUB_PATH").ok(),
                         }
                     } else if let Ok(bucket_name) = env::var("CUBESTORE_GCS_BUCKET") {
@@ -657,17 +661,28 @@ impl Config {
             }
             FileStoreProvider::S3 {
                 region,
+                endpoint,
                 bucket_name,
+                path_style,
                 sub_path,
             } => {
                 let data_dir = self.config_obj.data_dir.clone();
                 let region = region.to_string();
                 let bucket_name = bucket_name.to_string();
+                let endpoint = endpoint.clone();
+                let path_style = path_style.clone();
                 let sub_path = sub_path.clone();
                 self.injector
                     .register("original_remote_fs", async move |_| {
-                        let arc: Arc<dyn DIService> =
-                            S3RemoteFs::new(data_dir, region, bucket_name, sub_path).unwrap();
+                        let arc: Arc<dyn DIService> = S3RemoteFs::new(
+                            data_dir,
+                            region,
+                            path_style,
+                            endpoint,
+                            bucket_name,
+                            sub_path,
+                        )
+                        .unwrap();
                         arc
                     })
                     .await;
