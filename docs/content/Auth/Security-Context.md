@@ -28,6 +28,36 @@ the Data Schema and as the [`securityContext`][ref-config-sec-ctx] property
 inside the [`COMPILE_CONTEXT`][ref-cubes-compile-ctx] global, which is used to
 support [multi-tenant deployments][link-multitenancy].
 
+## Using queryRewrite
+
+You can use [`queryRewrite`][ref-config-queryrewrite] to amend incoming queries
+with filters. For example, let's take the following query:
+
+```json
+{
+  "dimensions": [""],
+  "measures": ["Orders.count", "Orders.total"],
+  "timeDimension": ["Orders.createdAt"]
+}
+```
+
+To ensure that users making this query only receive their own orders, define
+`queryRewrite` in the `cube.js` configuration file:
+
+```javascript
+module.exports = {
+  queryRewrite: (query, { securityContext }) => {
+    query.filters.push({
+      member: 'Orders.userId',
+      operator: 'equals',
+      values: [securityContext.id],
+    });
+  },
+};
+```
+
+[ref-config-queryrewrite]: /config#options-reference-query-rewrite
+
 ## Using SECURITY_CONTEXT
 
 In the example below `user_id`, `sub` and `iat` will be injected into the
