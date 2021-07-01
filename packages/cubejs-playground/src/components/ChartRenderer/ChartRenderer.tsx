@@ -12,7 +12,7 @@ import styled from 'styled-components';
 import type { ChartType, PivotConfig, Query } from '@cubejs-client/core';
 import { ResultSet } from '@cubejs-client/core';
 import { useHotkeys } from 'react-hotkeys-hook';
-import { CubeContext } from '@cubejs-client/react';
+import { CubeContext, useCubeMeta } from '@cubejs-client/react';
 
 import { Button, CubeLoader, FatalError } from '../../atoms';
 import { UIFramework } from '../../types';

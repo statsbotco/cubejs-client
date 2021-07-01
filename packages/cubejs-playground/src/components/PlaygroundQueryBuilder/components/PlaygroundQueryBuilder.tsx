@@ -123,7 +123,6 @@ function PivotChangeEmitter({
 }: PivotChangeEmitterProps) {
   useDeepEffect(() => {
     if (iframeRef?.current && chartType === 'table') {
-      console.log('@ pivot change', pivotConfig);
       dispatchPlaygroundEvent(iframeRef.current.contentDocument, 'chart', {
         pivotConfig,
       });
