@@ -42,4 +42,10 @@ EXPOSE 3306
 
 ENV RUST_BACKTRACE=true
 
+RUN groupadd --gid 1000 cubeuser && \
+    useradd --gid 1000 --uid 1000 --home-dir /cube cubeuser && \
+    chown cubeuser /cube
+    
+USER cubeuser
+
 CMD ["./cubestored"]
