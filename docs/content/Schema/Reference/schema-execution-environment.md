@@ -1,10 +1,12 @@
 ---
 title: Execution Environment
-permalink: /schema-execution-environment
+permalink: /schema/reference/execution-environment
 scope: cubejs
 category: Reference
 menuOrder: 9
 subCategory: Reference
+redirect_from:
+  - /schema-execution-environment
 ---
 
 Cube.js Schema Compiler uses [Node.js VM](https://nodejs.org/api/vm.html) to
@@ -114,7 +116,7 @@ Schemas can be externally stored and retrieved through an asynchronous operation
 using the `asyncModule()`. For more information, consult the [Dynamic Schema
 Creation][ref-dynamic-schemas] page.
 
-[ref-dynamic-schemas]: /schema/dynamic-schema-creation
+[ref-dynamic-schemas]: /schema/advanced/dynamic-schema-creation
 
 ## Context symbols transpile
 
