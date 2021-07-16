@@ -65,7 +65,13 @@ cube(`Orders`, {
 Pre-aggregations must include all dimensions, measures, and filters you will
 query with.
 
-## Rollup
+## Parameters
+
+### type
+
+<h4 id="parameters-type-rollup">
+rollup
+</h4>
 
 Rollup pre-aggregations are the most effective way to boost performance of any
 analytical application. The blazing fast performance of tools like Google
@@ -95,13 +101,13 @@ Rollup definitions can contain members from a single cube as well as from
 multiple cubes. In case of multiple cubes being involved, the join query will be
 built according to the standard rules of cubes joining.
 
-### Rollup selection rules
-
 Rollups are selected based on the properties found in queries made to the
 Cube.js REST API. A thorough explanation can be found under [Getting Started
 with Pre-Aggregations][ref-caching-preaggs-target].
 
-## Original SQL
+<h4 id="parameters-type-rollup">
+originalSql
+</h4>
 
 As the name suggests, it persists the results of the `sql` property of the cube.
 Pre-aggregations of type `originalSql` should **only** be used when the cube's
@@ -133,7 +139,9 @@ cube(`CompletedOrders`, {
 });
 ```
 
-## rollupJoin
+<h4 id="parameters-type-rollup">
+rollupJoin
+</h4>
 
 <!-- prettier-ignore-start -->
 [[warning | 🐣 &nbsp;&nbsp; Preview]]
@@ -221,7 +229,15 @@ cube('Users', {
 });
 ```
 
-## refreshKey
+### measures
+
+### dimensions
+
+### timeDimension
+
+### segments
+
+### refreshKey
 
 Cube.js can also take care of keeping pre-aggregations up to date with the
 `refreshKey` property. By default, it is set to `every: '1 hour'`. You can set
@@ -274,9 +290,12 @@ cube(`Orders`, {
 For possible `every` parameter values please refer to
 [`refreshKey`][ref-cube-refreshkey] documentation.
 
-## Incremental refresh
+<h4 id="parameters-type-rollup">
+Incremental refresh
+</h4>
 
-You can incrementally refresh partitioned rollups.
+You can incrementally refresh partitioned rollups. This option defaults to
+`true`.
 
 ```javascript
 cube(`Orders`, {
@@ -301,6 +320,14 @@ cube(`Orders`, {
 });
 ```
 
+<!-- prettier-ignore-start -->
+[[warning | ]]
+| Partition tables are refreshed as a whole. When a new partition table is
+| available, it replaces the old one. Old partition tables are collected by
+| [Garbage Collection][ref-caching-garbage-collection]. Append is never used to
+| add new rows to the existing tables.
+<!-- prettier-ignore-end -->
+
 The `incremental: true` flag generates a special `refreshKey` SQL query which
 triggers a refresh for partitions where the end date lies within the
 `updateWindow` from the current time. In the provided example, it will refresh
@@ -308,12 +335,7 @@ today's and the last 7 days of partitions once a day. Partitions before the
 `7 day` interval **will not** be refreshed once they are built unless the rollup
 SQL is changed.
 
-Partition tables are refreshed as a whole. When a new partition table is
-available, it replaces the old one. Old partition tables are collected by
-[Garbage Collection][ref-caching-garbage-collection]. Append is never used to
-add new rows to the existing tables.
-
-## useOriginalSqlPreAggregations
+### useOriginalSqlPreAggregations
 
 Cube.js supports multi-stage pre-aggregations by reusing original SQL
 pre-aggregations in rollups through the `useOriginalSqlPreAggregations`
@@ -363,7 +385,7 @@ cube(`Orders`, {
 });
 ```
 
-## scheduledRefresh
+### scheduledRefresh
 
 To always keep pre-aggregations up-to-date, you can mark them as
 `scheduledRefresh: true`. Without this flag, pre-aggregations are always built
@@ -403,7 +425,7 @@ cube(`Orders`, {
 });
 ```
 
-## buildRangeStart and buildRangeEnd
+### buildRangeStart and buildRangeEnd
 
 The build range defines what partitions should be built by a scheduled refresh.
 Scheduled refreshes will **never** look beyond this range.
@@ -444,7 +466,7 @@ cube(`Orders`, {
 });
 ```
 
-## Indexes
+### indexes
 
 In case of pre-aggregation tables having significant cardinality, you might want
 to create indexes for them in databases which support it. This is can be done as
