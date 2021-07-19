@@ -25,7 +25,10 @@ server.listen().then(({ version, port }) => {
 });
 `;
 
-const handlerJs = `module.exports = require('@cubejs-backend/serverless');
+const handlerJs = (moduleName: string) => `const Handler = require('${moduleName}');
+const configuration = require('./cube.js');
+
+module.exports = new Handler(configuration);
 `;
 
 // Shared environment variables, across all DB types
@@ -285,7 +288,8 @@ const templates: Record<string, Template> = {
       dev: 'cubejs-dev-server',
     },
     files: {
-      'index.js': () => handlerJs,
+      'index.js': () => handlerJs('@cubejs-backend/serverless-aws'),
+      'cube.js': () => cubeJs,
       'serverless.yml': serverlessYml,
       '.env': dotEnv,
       '.gitignore': () => gitIgnore,
@@ -298,7 +302,8 @@ const templates: Record<string, Template> = {
       dev: 'cubejs-dev-server',
     },
     files: {
-      'index.js': () => handlerJs,
+      'index.js': () => handlerJs('@cubejs-backend/serverless-google'),
+      'cube.js': () => cubeJs,
       'serverless.yml': serverlessGoogleYml,
       '.env': dotEnv,
       '.gitignore': () => gitIgnore,
