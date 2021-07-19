@@ -1,6 +1,7 @@
 import R from 'ramda';
 import uuid from 'uuid/v4';
 import { Required } from '@cubejs-backend/shared';
+import { ContinueWaitError } from '@cubejs-backend/query-orchestrator';
 
 import { CubejsServerCore } from './server';
 import { CompilerApi } from './CompilerApi';
@@ -442,32 +443,29 @@ export class RefreshScheduler {
     const preAggregations = await this.preAggregationPartitions(context, compilerApi, queryingOptions);
     const preAggregationsLoadCacheByDataSource = {};
     
-    Promise.all(preAggregations.map(async (p: any) => {
+    await Promise.all(preAggregations.map(async (p: any) => {
       const { partitions } = p;
       return Promise.all(partitions.map(async query => {
         const sqlQuery = await compilerApi.getSql(query);
 
-        await orchestratorApi.executeQuery({
-          ...sqlQuery,
-          continueWait: true,
-          renewQuery: true,
-          forceBuildPreAggregations: true,
-          orphanedTimeout: 60 * 60,
-          requestId: context.requestId,
-          timezone: query.timezone,
-          scheduledRefresh: false,
-          preAggregationsLoadCacheByDataSource
-        });
+        try {
+          await orchestratorApi.executeQuery({
+            ...sqlQuery,
+            continueWait: true,
+            renewQuery: true,
+            forceBuildPreAggregations: true,
+            orphanedTimeout: 60 * 60,
+            requestId: context.requestId,
+            timezone: query.timezone,
+            scheduledRefresh: false,
+            preAggregationsLoadCacheByDataSource
+          });
+        } catch (err) {
+          if (err instanceof ContinueWaitError) return;
+          throw err;
+        }
       }));
-    })).catch(e => {
-      if (e.error !== 'Continue wait') {
-        this.serverCore.logger('Manual Build Pre-aggregations Error', {
-          error: e.error || e.stack || e.toString(),
-          securityContext: context.securityContext,
-          requestId: context.requestId
-        });
-      }
-    });
+    }));
 
     return true;
   }

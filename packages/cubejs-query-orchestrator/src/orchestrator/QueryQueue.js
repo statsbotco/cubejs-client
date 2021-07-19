@@ -113,6 +113,8 @@ export class QueryQueue {
         });
       }
 
+      if (query.forceBuild) throw new ContinueWaitError();
+
       result = await redisClient.getResultBlocking(queryKey);
       if (!result) {
         throw new ContinueWaitError();
