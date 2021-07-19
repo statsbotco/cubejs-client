@@ -137,7 +137,7 @@ export class ClickHouseQuery extends BaseQuery {
     return `${fieldAlias} ${direction}`;
   }
 
-  groupByClause() {
+  groupByClause(isKeysSubquery = false) {
     if (this.ungrouped) {
       return '';
     }
